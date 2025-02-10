@@ -10,6 +10,7 @@ public class TestController {
 	
 	/** 
 	 * Test controller class
+	 * Another line
 	 * */
 	@GetMapping("/test")
 	public ResponseEntity<?> test(){

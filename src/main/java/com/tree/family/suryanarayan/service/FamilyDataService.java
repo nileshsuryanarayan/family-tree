@@ -3,10 +3,12 @@ package com.tree.family.suryanarayan.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,32 @@ public class FamilyDataService {
 		}
 //		generateFamilyTree(members);
 		return members;
+	}
+	
+	/** 
+	 * 
+	 * */
+	public boolean updateFamilyMember(FamilyMember updatedMember) {
+		// Save the spouses
+		List<String> spouseIds = addSpouses(updatedMember);
+		if (spouseIds != null && spouseIds.size() > 0) {
+			updatedMember.setSpouseIds(spouseIds);
+		}
+		
+		// Save the children
+		List<String> childrenIds = addChildrenIds(updatedMember);
+		if (childrenIds != null && childrenIds.size() > 0) {
+			updatedMember.setSpouseIds(childrenIds);
+		}
+		
+		try {
+			datasetReader.updateExistingMember(updatedMember);
+			return true;
+		} catch (IOException e) {
+			System.out.println("ERROR occurred in updting existing member: " + e.getLocalizedMessage());
+			e.printStackTrace();
+			return false;
+		}
 	}
 	
 	/** 
@@ -161,4 +189,91 @@ public class FamilyDataService {
 		}
 		return member;
 	}
+	
+	/** 
+	 * 
+	 * 
+	 * */
+	private List<String> addSpouses(FamilyMember updatedMember) {
+		List<String> spouseIds = new ArrayList<>();
+		List<Integer> errIndices = null;
+		if(updatedMember.getSpouse() != null && updatedMember.getSpouse().size() > 0) {
+			// Iterate over spouses array
+			errIndices = new ArrayList<>();
+			int index = 0;
+			for(Person spouse: updatedMember.getSpouse()) {
+				FamilyMember member = (FamilyMember) spouse;
+				member.setMarried(true);
+				try {
+					int spouseId = getNewId();
+					System.out.println("The new Id for spouse is: " + spouseId);
+					if(datasetReader.addNewMember(member, spouseId)) {
+						spouseIds.add(Integer.toString(spouseId));
+					} else {
+						// Spouse not added
+						System.out.println("ERROR: Spouse Not added");
+						errIndices.add(index);
+					}
+				} catch(IOException e) {
+					System.out.println("ERROR occurred in dding  new member: " + e.getLocalizedMessage());
+					errIndices.add(index);
+				}
+				index++;
+			}
+		}
+		if(errIndices != null && errIndices.size() > 0) {
+			System.out.println("Spouse Error Indices: " + errIndices);
+		}
+		return spouseIds;
+	}
+	
+	/** 
+	 * 
+	 * 
+	 * */
+	private List<String> addChildrenIds(FamilyMember updatedMember) {
+		List<Integer> errIndices = null;
+		List<String> childrenIds = new ArrayList<>();
+		if(updatedMember.getChildren() != null && updatedMember.getChildren().size() > 0) {
+			// Iterate over spouses array
+			errIndices = new ArrayList<>();
+			int index = 0;
+			for(Person child: updatedMember.getChildren()) {
+				FamilyMember member = (FamilyMember) child;
+				try {
+					int childId = getNewId();
+					System.out.println("The new Id for child is: " + childId);
+					if (datasetReader.addNewMember(member, childId)) {
+						childrenIds.add(Integer.toString(childId));
+					} else {
+						// Child not added
+						System.out.println("ERROR: child not added");
+						errIndices.add(index);
+					}
+				} catch(IOException e) {
+					System.out.println("ERROR occurred in dding  new member: " + e.getLocalizedMessage());
+					errIndices.add(index);
+				}
+				index++;
+			}
+		}
+		if(errIndices != null && errIndices.size() > 0) {
+			System.out.println("Children Error Indices: " + errIndices);
+		}
+		return childrenIds;
+	}
+	
+	/** 
+	 * 
+	 * 
+	 * */
+	private int getNewId() throws IOException {
+		// First get all the records and then calculate the highest
+		Optional<FamilyMember> op = this.getFamilyMembers().stream().max(Comparator.comparingInt(FamilyMember::getId));
+		if (op.isPresent())
+			return op.get().getId() + 1;
+		else
+			return -2;
+	}
+	
 }

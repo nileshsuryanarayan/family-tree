@@ -48,12 +48,18 @@ public class FamilyDataController {
 		List<FamilyMember> list = null;
 		try {
 			// update Family Member
+			System.out.println("Update Family member request" + request);
 			if(request == null && request.getId() <= 0) {
 				System.out.println("ERROR: INVALID REQUEST");
 				return new ResponseEntity(HttpStatus.BAD_REQUEST);
 			}
-			System.out.println("Update Family member request" + request);
-			list = service.getFamilyMembers();
+			boolean updateSuccess = service.updateFamilyMember(request);
+			if (updateSuccess) {
+				list = service.getFamilyMembers();
+			} else {
+				System.out.println("Update Failed :: Returning HTTP Error 500");
+				return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+			}
 		} catch(IOException e) {
 			System.out.println("ERROR: " + e.getLocalizedMessage());
 			e.printStackTrace();

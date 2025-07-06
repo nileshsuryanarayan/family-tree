@@ -3,18 +3,16 @@ package com.tree.family.suryanarayan.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.tree.family.suryanarayan.model.FamilyMember;
-import com.tree.family.suryanarayan.model.FamilyTree;
 import com.tree.family.suryanarayan.model.Person;
 import com.tree.family.suryanarayan.util.Gender;
 
@@ -28,20 +26,35 @@ import static com.tree.family.suryanarayan.util.Constants.INVLAID_ID_PLACEHOLDER
 public class FamilyDataService {
 
 	@Autowired
+//	@Qualifier(value = "dbDatasetReader")
+	@Qualifier(value = "fileDatasetReader")
 	private DatasetReader datasetReader;
 	
 	/** 
 	 * 
 	 * */
 	public List<FamilyMember> getFamilyMembers() throws IOException {
-		List<String> lines = datasetReader.readData();
+		List<?> lines = datasetReader.readData();
 		List<FamilyMember> members = new ArrayList<FamilyMember>();
-		for(String line: lines) {
-			FamilyMember member = parseStrIntoFamlyMember(line);
+		for(Object line: lines) {
+			FamilyMember member = parseObjToFamilyMember(line);
 			members.add(member);
 		}
 //		generateFamilyTree(members);
 		return members;
+	}
+	
+	/** 
+	 * 
+	 * */
+	private FamilyMember parseObjToFamilyMember(Object obj) {
+		FamilyMember member = null;
+		if(obj instanceof String) {
+			member = parseStrIntoFamilyMember((String) obj);
+		} else if(obj instanceof com.tree.family.suryanarayan.jpa.entity.Person) {
+			member = parsePersonEntityToFamilyMember((com.tree.family.suryanarayan.jpa.entity.Person) obj);
+		}
+		return member;
 	}
 	
 	/** 
@@ -71,89 +84,6 @@ public class FamilyDataService {
 	}
 	
 	/** 
-	 * 
-	 * */
-	private FamilyTree generateFamilyTree(List<FamilyMember> members) {
-		FamilyMember rootElement = null;
-		Map<Integer, FamilyMember> map = new HashMap<Integer, FamilyMember>();
-		// Create a Map for each Id and its object
-		for(FamilyMember member: members) {
-			map.put(member.getId(), member);
-		}
-		
-		// Loop again on members
-		for(FamilyMember member: members) {
-			// Set Father
-			String id = member.getFatherId();
-			if(id != null && !id.equals(EMPTY)) {
-				// Deep Copy Father Details and
-				FamilyMember shallow = map.get(Integer.parseInt(id));
-				FamilyMember fatherObj = new FamilyMember();
-				fatherObj.setId(shallow.getId());
-				fatherObj.setFirstName(shallow.getFirstName());
-				fatherObj.setLastName(shallow.getLastName());
-				fatherObj.setDateOfBirth(shallow.getDateOfBirth());
-				fatherObj.setDateOfDeah(shallow.getDateOfDeah());
-				fatherObj.setGender(shallow.getGender());
-				fatherObj.setMarried(shallow.isMarried());
-				fatherObj.setMother(shallow.getMother());
-				fatherObj.setFather(shallow.getFather());
-				fatherObj.setSpouse(shallow.getSpouse());
-				member.setFather(fatherObj);
-			}
-			// Set Mother
-			id = member.getMotherId();
-			if(id != null && !id.equals(EMPTY)) {
-				// Deep Copy Father Details and
-				FamilyMember shallow = map.get(Integer.parseInt(id));
-				FamilyMember motherObj = new FamilyMember();
-				motherObj.setId(shallow.getId());
-				motherObj.setFirstName(shallow.getFirstName());
-				motherObj.setLastName(shallow.getLastName());
-				motherObj.setDateOfBirth(shallow.getDateOfBirth());
-				motherObj.setDateOfDeah(shallow.getDateOfDeah());
-				motherObj.setGender(shallow.getGender());
-				motherObj.setMarried(shallow.isMarried());
-				motherObj.setMother(shallow.getMother());
-				motherObj.setFather(shallow.getFather());
-				motherObj.setSpouse(shallow.getSpouse());
-				
-				member.setMother(motherObj);
-			}
-			// Set Spouse/s
-			if(member.getSpouseIds() != null && member.getSpouseIds().size()>0) {
-				List<Person> spList = new LinkedList<Person>();
-				for(String spId: member.getSpouseIds()) {
-					FamilyMember mmbr = map.get(Integer.parseInt(spId != null && !spId.equals(EMPTY) ? spId : INVLAID_ID_PLACEHOLDER));
-					spList.add(mmbr);
-				}
-				member.setSpouse(spList);
-			}
-			// Set Children
-			if(member.getChildrenIds() != null && member.getChildrenIds().size()>0) {
-				List<Person> childList = new LinkedList<Person>();
-				for(String chId: member.getChildrenIds()) {
-					FamilyMember mmbr = map.get(Integer.parseInt(chId != null && !chId.equals(EMPTY) ? chId : INVLAID_ID_PLACEHOLDER));
-					childList.add(mmbr);
-				}
-				member.setChildren(childList);
-			}
-			
-			if (member.isRoot()) {
-				rootElement = member;
-			}
-		}
-		
-		System.out.println("Family Members Restructured: =========================");
-		System.out.println(members);
-		
-		FamilyTree familyTree = new FamilyTree();
-		familyTree.setRoot(rootElement);
-		
-		return familyTree;
-	}
-	
-	/** 
 	 * [0]  - id <br>
 	 * [1]  - isRoot <br>
 	 * [2]  - FirstName <br>
@@ -168,7 +98,7 @@ public class FamilyDataService {
 	 * [11] - Children <br>
 	 * 
 	 * */
-	private FamilyMember parseStrIntoFamlyMember(String line) {
+	private FamilyMember parseStrIntoFamilyMember(String line) {
 		FamilyMember member = new FamilyMember();
 		if (line != null && !line.trim().equals("")) {
 			String[] strArray = line.split(CSV_DELIMITER);
@@ -186,6 +116,30 @@ public class FamilyDataService {
 			member.setMotherId(strArray[9]);
 			member.setSpouseIds(Arrays.asList(strArray[10].split(COMMA)));
 			member.setChildrenIds(Arrays.asList(strArray[11].split(COMMA)));
+		}
+		return member;
+	}
+	
+	/** 
+	 * 
+	 * */
+	private FamilyMember parsePersonEntityToFamilyMember(com.tree.family.suryanarayan.jpa.entity.Person person) {
+		FamilyMember member = new FamilyMember();
+		String[] emptyStrArray = new String[0];
+		if(person != null) {
+			// Set object  details
+			member.setId(person.getId());
+			member.setRoot(person.isRoot());
+			member.setFirstName(person.getFirstName());
+			member.setLastName(person.getLastName());
+			member.setGender(person.getGender().equals("male") ? Gender.MALE : Gender.FEMALE);
+			member.setDateOfBirth(person.getDateOfBirth().toString());
+			member.setDateOfDeah(person.getDateOfDeath().toString());
+			member.setMarried(person.isMarried());
+			member.setFatherId(Integer.toString(person.getFather()));
+			member.setMotherId(Integer.toString(person.getMother()));
+			member.setSpouseIds(Arrays.asList(person.getSpouse() != null ? person.getSpouse().split(COMMA) : emptyStrArray));
+			member.setChildrenIds(Arrays.asList(person.getChildren() != null ? person.getChildren().split(COMMA) : emptyStrArray));
 		}
 		return member;
 	}
@@ -252,6 +206,9 @@ public class FamilyDataService {
 					}
 				} catch(IOException e) {
 					System.out.println("ERROR occurred in dding  new member: " + e.getLocalizedMessage());
+					errIndices.add(index);
+				} catch(IllegalArgumentException e) {
+					System.out.println("ERROR occurred in persisting new member in Db: " + e.getLocalizedMessage());
 					errIndices.add(index);
 				}
 				index++;

@@ -1,6 +1,6 @@
 package com.tree.family.suryanarayan.util;
 
-public class Constants {
+public interface Constants {
 
 	public static final String CSV_DELIMITER = ";";
 	public static final String COMMA = ",";

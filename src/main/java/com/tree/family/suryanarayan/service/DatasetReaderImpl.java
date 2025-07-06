@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ import static com.tree.family.suryanarayan.util.Constants.EMPTY;
 import static com.tree.family.suryanarayan.util.Constants.COMMA;
 
 @Component
+@Qualifier(value = "fileDatasetReader")
 public class DatasetReaderImpl implements DatasetReader {
 
 	@Value("${family.tree.dataset}")
@@ -69,9 +71,8 @@ public class DatasetReaderImpl implements DatasetReader {
 		System.out.println("String record to be added: " + sb.toString());
 		
 		// Now append this line to the existing file
-		
-		
-		return false;
+		appendLine(sb.toString());
+		return true;
 	}
 	
 	public void updateExistingMember(FamilyMember member) throws IOException {

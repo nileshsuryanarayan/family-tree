@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tree.family.suryanarayan.model.FamilyMember;
 import com.tree.family.suryanarayan.service.FamilyDataService;
+import com.tree.family.suryanarayan.util.DataProcessor;
 
 @RestController
 @CrossOrigin(origins = { "${service.allowed.origins}" })
@@ -21,6 +22,9 @@ public class FamilyDataController {
 	
 	@Autowired
 	private FamilyDataService service;
+	
+	@Autowired
+	private DataProcessor dataProcessor;
 
 	@GetMapping("/family-members")
 	private ResponseEntity<List<FamilyMember>> getFamilyMembers() {
@@ -71,6 +75,16 @@ public class FamilyDataController {
 			return new ResponseEntity(HttpStatus.NOT_FOUND);
 		} else {
 			return ResponseEntity.ok(list);
+		}
+	}
+	
+	@GetMapping("/sync-db-with-csv")
+	private ResponseEntity<String> syncDbWithCSV() {
+		if(dataProcessor.persistDatatoDb()) {
+			System.out.println("Successfully PERSISTED.");
+			return ResponseEntity.ok("Data persisted to MySQL database successfully!");
+		} else {
+			return new ResponseEntity<String>(HttpStatus.NOT_MODIFIED);
 		}
 	}
 	

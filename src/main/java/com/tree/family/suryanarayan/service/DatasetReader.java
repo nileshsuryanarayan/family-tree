@@ -14,7 +14,7 @@ public interface DatasetReader {
 	 * 
 	 * 
 	 * */
-	public List<String> readData() throws IOException;
+	public List<?> readData() throws IOException;
 	
 	/** 
 	 * 
